@@ -17,7 +17,7 @@ There is a cloud of fog placed over the terrain, the user could use button on th
 the fog.</br>
 
 ## Images Preview
-![]CS418_Computer_Graphics/mp2_flight_simulator/image/flight_simulator.png
+![](CS418_Computer_Graphics/mp2_flight_simulator/image/flight_simulator.png)
       
 
 ## Instructions on how to use the program:
