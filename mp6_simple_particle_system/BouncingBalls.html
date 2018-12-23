@@ -1,0 +1,119 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <title>Bouncing Balls - CS418 MP4</title>
+    <meta charset="utf-8">
+</head>
+
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+  <title>MP4</title>
+  <meta charset="utf-8">
+</head>
+
+<script id="shader-vs"  type="x-shader/x-vertex" >
+  //precision mediump float; 
+
+  attribute vec3 aVertexNormal;
+  attribute vec3 aVertexPosition;
+
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+  //uniform mat3 uNMatrix;
+  //uniform vec3 uLightPosition;
+
+  //uniform vec3 uAmbientLightColor;
+  //uniform vec3 uDiffuseLightColor;
+  //uniform vec3 uSpecularLightColor;
+  
+  //uniform vec3 uAmbientMatColor;
+  //uniform vec3 uDiffuseMatColor;
+  //uniform vec3 uSpecularMatColor;
+  
+  //const float shininess = 32.0;
+  
+  varying vec3 vVertexNormal;
+  varying vec4 vVertexPosition;
+  
+  void main() {
+    
+     vVertexPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
+     vVertexNormal = aVertexNormal;
+     gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+  }
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+  precision mediump float; 
+
+  uniform mat3 uNMatrix;
+  uniform vec3 uLightPosition;
+
+  uniform vec3 uAmbientLightColor;
+  uniform vec3 uDiffuseLightColor;
+  uniform vec3 uSpecularLightColor;
+  
+  uniform vec3 uAmbientMaterialColor;
+  uniform vec3 uDiffuseMaterialColor;
+  uniform vec3 uSpecularMaterialColor;
+  
+  const float shininess = 23.0;
+  
+  varying vec3 vVertexNormal;
+  varying vec4 vVertexPosition;
+
+  void main(void) {
+       // Get the vertex position in eye coordinates
+    vec4 vertexPositionEye4 = vVertexPosition;
+    vec3 vertexPositionEye3 = vertexPositionEye4.xyz / vertexPositionEye4.w;
+  
+    // Calculate the vector (l) to the light source
+    vec3 vectorToLightSource = normalize(uLightPosition - vertexPositionEye3);
+    
+    // Transform the normal (n) to eye coordinates
+    vec3 normalEye = normalize(uNMatrix * vVertexNormal);
+    
+    // Calculate n dot l for diffuse lighting
+    float diffuseLightWeighting = max(dot(normalEye, 
+                                    vectorToLightSource), 0.0);
+                                       
+    // Calculate the reflection vector (r) that is needed for specular light
+    vec3 reflectionVector = normalize(reflect(-vectorToLightSource, 
+                                             normalEye));
+    
+    // The camera in eye coordinates is located at the origin and is pointing
+    // along the negative z-axis. Calculate viewVector (v) 
+    // in eye coordinates as:
+    // (0.0, 0.0, 0.0) - vertexPositionEye3
+    vec3 viewVectorEye = -normalize(vertexPositionEye3);
+    
+    float rdotv = max(dot(reflectionVector, viewVectorEye), 0.0);
+    
+    float specularLightWeighting = pow(rdotv, shininess);
+
+    // Sum up all three reflection components and send to the fragment shader
+    gl_FragColor = vec4((uAmbientLightColor * uAmbientMaterialColor)
+                + ((uDiffuseLightColor * uDiffuseMaterialColor) * diffuseLightWeighting)
+                + ((uSpecularLightColor * uSpecularMaterialColor) * specularLightWeighting),1.0);
+  }
+</script>
+
+<script src="gl-matrix-min.js"></script>
+<script src="webgl-utils.js"></script>
+<script src="simpleModeling.js"></script>  
+<script src="ParticleSystem.js"></script>
+<script src="sphere.js"></script>
+<script src="CreateSystem.js"></script>
+<div id="config" style = "position: absolute; left: 800px; top:100px" align = "left">
+            <ul>
+                <li>Press "A" to add balls in random position with random velocity</li>
+                <li>Press "R" to reset the screen</li>
+            </ul>
+        </div>      
+
+<body onload="startup()" onkeydown="handleKeyDown(event)" onkeyup="handleKeyUp(event)">
+  <canvas id="canvas" width="800" height="800"></canvas>
+ </body>
+</html>
