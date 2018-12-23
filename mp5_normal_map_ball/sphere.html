@@ -1,0 +1,106 @@
+<!DOCTYPE HTML> 
+<html lang="en"> 
+<head>
+<title>Normal Mapping Sphere</title>
+<meta charset="utf-8">
+</head>
+    
+<script id="shader_sphere-vs" type="x-shader/x-vertex">
+    
+    
+   attribute vec3 aVertexNormal;
+   attribute vec3 aVertexPosition;
+   attribute vec2 aVertexTextureCoords;
+   attribute vec3 aVertexTangent;
+   attribute vec3 aVertexBitangent;
+
+   uniform mat4 uMVMatrix;
+   uniform mat4 uPMatrix;
+   uniform mat3 uNMatrix;
+   uniform vec3 uLightPosition;
+    
+    varying vec3 vLightDirection;
+    varying vec3 vEyeDirection;
+    varying vec2 vVertexTex;
+
+    void main(void) {
+    
+    vec4 vertexPositionEye4 = uMVMatrix * vec4(aVertexPosition, 1.0);
+    vec3 vertexPositionEye3 = vertexPositionEye4.xyz / vertexPositionEye4.w;
+    
+    vec3 vectorToLightSource = normalize(uLightPosition - vertexPositionEye3);
+
+    // Use the same uNMatrix
+    vec3 normalEye = normalize(uNMatrix * aVertexNormal); 
+    
+    vec3 tanEye = normalize(uNMatrix * aVertexTangent);   
+    
+    vec3 bitanEye = normalize(uNMatrix * aVertexBitangent);
+    
+    // Define TBN
+    mat3 TBN = mat3(
+        tanEye.x, bitanEye.x, normalEye.x,
+        tanEye.y, bitanEye.y, normalEye.y,
+        tanEye.z, bitanEye.z, normalEye.z
+    );                                          
+            
+    
+    vec3 viewVectorEye = -normalize(vertexPositionEye3);
+	vVertexTex = aVertexTextureCoords;
+    vLightDirection = normalize(TBN * vectorToLightSource);    
+    vEyeDirection = normalize(TBN * viewVectorEye);
+
+    gl_Position = uPMatrix*uMVMatrix*vec4(aVertexPosition, 1.0);   
+
+    }
+</script>
+    
+<script id="shader_sphere-fs" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec3 vLightDirection;
+varying vec3 vEyeDirection;
+varying vec2 vVertexTex;
+
+uniform sampler2D uNormalSampler;
+
+uniform vec3 uAmbientLightColor;
+uniform vec3 uDiffuseLightColor;
+uniform vec3 uSpecularLightColor;
+
+uniform vec3 uKAmbient;
+uniform vec3 uKDiffuse;
+uniform vec3 uKSpecular;
+uniform float uShininess;
+
+void main(void) {
+        vec3 tex = texture2D(uNormalSampler, vVertexTex).rgb; 
+        
+        vec3 normal = normalize(vec3(tex.x*2.0 - 1.0, tex.y*2.0 - 1.0, tex.z*2.0 - 1.0));  
+        
+        vec3 reflectionVector = reflect(-vLightDirection, normal);
+        
+        float rdotv = max(clamp(dot(reflectionVector, vEyeDirection), 0.0, 1.0), 0.0);
+        float specularLightWeightning = pow(rdotv, uShininess);
+        
+        float diffuseLightWeightning = max(clamp(dot(normal, vLightDirection), 0.0, 1.0), 0.0);
+        
+        
+        //gl_FragColor = vec4((uAmbientLightColor
+                //+ diffuseLightWeightning * texture2D(uSampler, vVertexTex).rgb * uDiffuseLightColor
+                //+ uSpecularLightColor * specularLightWeightning), 1.0);  
+
+        gl_FragColor = vec4((uAmbientLightColor //* uKAmbient 
+                + diffuseLightWeightning * uKDiffuse * uDiffuseLightColor
+                + uSpecularLightColor * specularLightWeightning ), 1.0);  
+
+ }
+</script>
+
+<script src="gl-matrix-min.js"></script> 
+<script type="text/javascript" src="webgl-utils.js"></script> 
+<script src="simpleModeling.js"></script>  
+<script src="NormalMap.js"></script>  
+<body onload="startup();">
+    <canvas id="myGLCanvas" width="800" height="800"></canvas>
+</body>
