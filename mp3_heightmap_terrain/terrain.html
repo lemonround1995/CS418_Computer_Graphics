@@ -1,0 +1,154 @@
+
+<!DOCTYPE HTML> 
+<html lang="en"> 
+<head>
+<title>Texture Mapping</title>
+<meta charset="utf-8"> 
+</head>
+
+    
+<script id="shader-vs" type="x-shader/x-vertex">
+   //attribute vec3 aVertexNormal;
+   attribute vec3 aVertexPosition;
+   attribute vec2 aTexCoord;
+   
+   uniform mat4 uMVMatrix;
+   uniform mat4 uPMatrix;
+   //uniform mat3 uNMatrix;
+
+
+   uniform sampler2D uHeightSampler;
+   //uniform sampler2D uColorSampler;
+
+  
+   varying vec2 vTexCoord;
+   varying vec4 vVertexPosition;
+   varying vec3 vVertexNormal;
+
+   
+   
+
+   void main(void) { 
+     // Get the color representing height of a vertex
+     const float heightFactor = 0.9;
+     vec4 dataHeight  = texture2D(uHeightSampler, aTexCoord);
+     vec3 newPosition = vec3(aVertexPosition.x, aVertexPosition.y, 0.0);
+     newPosition.z += heightFactor * (dataHeight.r + dataHeight.g + dataHeight.b) / 3.0;
+     gl_Position = uPMatrix * uMVMatrix * vec4(newPosition, 1.0);
+     
+     vVertexPosition = uMVMatrix * vec4(newPosition, 1.0);
+     vTexCoord=aTexCoord;
+
+    // Calculate nearby height for approximately calculate the vertext nomal
+     const float offset = 1.0 / 1024.0;
+
+      vec4 nearByHeightL = texture2D(uHeightSampler, vec2(vTexCoord.x - offset, vTexCoord.y + 0.0));
+      vec4 nearByHeightR = texture2D(uHeightSampler, vec2(vTexCoord.x + offset, vTexCoord.y + 0.0));
+      vec4 nearByHeightD = texture2D(uHeightSampler, vec2(vTexCoord.x + 0.0, vTexCoord.y - offset));
+      vec4 nearByHeightU = texture2D(uHeightSampler, vec2(vTexCoord.x + 0.0, vTexCoord.y + offset));
+
+      float HL = heightFactor * (nearByHeightL.r + nearByHeightL.g + nearByHeightL.b) / 3.0;
+      float HR = heightFactor * (nearByHeightR.r + nearByHeightR.g + nearByHeightR.b) / 3.0;
+      float HD = heightFactor * (nearByHeightD.r + nearByHeightD.g + nearByHeightD.b) / 3.0;
+      float HU = heightFactor * (nearByHeightU.r + nearByHeightU.g + nearByHeightU.b) / 3.0;
+
+      float nx = HL - HR;
+      float ny = HD - HU;
+      vVertexNormal = normalize(vec3(nx, ny, 2.0));
+
+      
+    }
+</script>
+  
+<script id="shader-fs" type="x-shader/x-fragment">
+precision mediump float;
+
+//uniform mat4 uPMatrix;
+uniform mat3 uNMatrix;
+
+uniform vec3 uLightPosition;
+uniform vec3 uAmbientLightColor;
+uniform vec3 uDiffuseLightColor;
+uniform vec3 uSpecularLightColor;
+
+uniform vec3 uKAmbient;
+uniform vec3 uKDiffuse;
+uniform vec3 uKSpecular;
+uniform float uShininess;
+
+//uniform sampler2D uHeightSampler;
+uniform sampler2D uColorSampler;
+
+uniform int uBlinnPhong;
+ 
+//varying vec4 vColor;
+varying vec2 vTexCoord;
+varying vec4 vVertexPosition;
+varying vec3 vVertexNormal;
+
+ 
+void main() {
+        
+        // Get the vertex position in eye coordinates
+        vec4 vertexPositionEye4 = vVertexPosition;
+        vec3 vertexPositionEye3 = vertexPositionEye4.xyz / vertexPositionEye4.w;
+
+        // Calculate the vector (l) to the light source
+        vec3 vectorToLightSource = normalize(uLightPosition - vertexPositionEye3);
+
+        // Transform the normal (n) to eye coordinates
+        vec3 normalEye = normalize(uNMatrix * vVertexNormal);
+
+        // Calculate n dot l for diffuse lighting
+        //float diffuseLightWeightning = max(dot(normalEye, 
+                                    //vectorToLightSource), 0.0);
+        // Calculate the reflection vector (r) that is needed for specular light
+        //vec3 reflectionVector = normalize(reflect(-vectorToLightSource, 
+                                             //normalEye));
+
+
+        // The camera in eye coordinates is located in the origin and is pointing
+        // along the negative z-axis. Calculate viewVector (v) 
+        // in eye coordinates as:
+        // (0.0, 0.0, 0.0) - vertexPositionEye3
+        vec3 viewVectorEye = -normalize(vertexPositionEye3);
+
+        // Calculate h vector
+        vec3 hVector = normalize(vectorToLightSource + viewVectorEye);
+
+        // Calculate n dot h for diffuse lighting
+        float diffuseLightWeightning = max(dot(normalEye, 
+                                    vectorToLightSource), 0.0);
+    
+        float hdotv = max(dot(vVertexNormal, hVector), 0.0);
+    
+        float specularLightWeightning = pow(hdotv, uShininess);
+
+        // Sum up all three reflection components and send to the fragment shader
+         vec4 vColor = vec4(((uAmbientLightColor*uKAmbient)
+                + (uDiffuseLightColor*uKDiffuse) * diffuseLightWeightning
+                + ((uSpecularLightColor*uKSpecular) * specularLightWeightning)),1.0);
+      
+    
+  if (uBlinnPhong == 1) {
+    gl_FragColor = vColor;
+  } else{
+    gl_FragColor = texture2D(uColorSampler, vTexCoord);
+  }
+}
+</script>
+
+<script src="gl-matrix-min.js"></script> 
+<script src="webgl-utils.js"></script>   
+<script src="textureMapping.js"></script> 
+<body onload="startup();">
+<canvas id="myGLCanvas" width="800" height="800"></canvas>
+ <form id="input_form">
+        <fieldset style = "position: absolute; left: 820px; top:300px; width:20%" align = "center">
+            <legend>Control BlinnPhong</legend>
+         <input type="radio" name="primitive" id="ON" value="ON" > ON
+         <input type="radio" name="primitive" id="OFF" value="OFF" checked> OFF  
+        </fieldset>
+        </form>
+</body>
+</html>
