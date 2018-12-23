@@ -6,7 +6,7 @@ Simple Filght Simulator
 Terrain Model: Use Diamond-Square method to generate terrain meshes. </br>
 Terrain Color: Assign different color to terrain vertices according to the height (z value) of the terrain. </br>
 
-# Control The Airplane
+## Control The Airplane
 The airplane automatically move forward at a fixed speed. The user will control the pitch, row and yaw of the </br>
 airplane by pressing keyboard. The user can also use +/- key to increase/decrease the airplane's speed.</br>
 
@@ -17,7 +17,8 @@ There is a cloud of fog placed over the terrain, the user could use button on th
 the fog.</br>
 
 ## Images Preview
-![]image/flight_simulator.png
+![]CS418_Computer_Graphics/mp2_flight_simulator/image/flight_simulator.png
+      
 
 ## Instructions on how to use the program:
 Open flight_simulator.html in browser such as Chrome or Firefox, and follow the instructions on the interface to control </br>
